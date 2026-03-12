@@ -1,12 +1,11 @@
 ---
 interface Props {
-    id: number;
     href: string;
     Icon: any;
     extraclass?: string;
 };
 
-const { id, href, Icon, extraclass } = Astro.props;
+const { href, Icon, extraclass } = Astro.props;
 ---
 
 <a href=`/${href}` class=`flex justify-center items-center size-12 rounded-full bg-black-primary text-on-primary 

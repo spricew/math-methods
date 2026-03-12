@@ -1,12 +1,23 @@
 ---
 import Layout from "@/layouts/Layout.astro";
+
+export function getStaticPaths() {
+    return [
+        { params: { slug: 'newton-raphson' } },
+        { params: { slug: 'bisection' } },
+        { params: { slug: 'secant' } },
+    ];
+}
+
+const { slug } = Astro.params;
 ---
 
-<Layout title="metodo">
+<Layout title={slug ?? "Método"}>
     <main class="grid grid-cols-2 h-full gap-8 px-24 py-8">
         <section class="flex flex-col gap-4">
             <header class="flex flex-col gap-1">
                 <h1 class="text-3xl tracking-tight font-semibold">Parámetros</h1>
+                <h1 class="text-3xl tracking-tight font-semibold">Parámetro: este</h1>
                 <p>Resuelve ecuaciones</p>
             </header>
 

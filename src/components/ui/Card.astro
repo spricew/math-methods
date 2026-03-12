@@ -1,5 +1,5 @@
 ---
-import Button from './CircularButton.astro';
+import CircleButton from './CircleButton.astro';
 import { ArrowRight } from '@lucide/astro'
 
 interface Props {
@@ -22,7 +22,7 @@ const { id, Icon, title, description, variant } = Astro.props;
         {description}
     </p>
     
-    <Button 
+    <CircleButton 
         id={id}
         href="method"
         Icon={ArrowRight}

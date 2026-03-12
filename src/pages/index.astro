@@ -7,21 +7,21 @@ import { TrendingDown, ChevronsDownUp, LineDotRightHorizontal } from '@lucide/as
 
 const operations: CardProps[] = [
 	{
-		id: 1,
+		slug: "newton-raphson",
 		title: "Newton-Raphson",
 		description: "A powerful method for finding roots by using the function's derivative for rapid, quadratic convergence near the solution.",
 		Icon: TrendingDown,
 		variant: "primary"
 	},
 	{
-		id: 2,
+		slug: "bisection",
 		title: "Bisection Method",
 		description: "A robust, reliable method based on the Intermediate Value Theorem that repeatedly halves the interval to trap theroot.",
 		Icon: ChevronsDownUp,
 		variant: "secondary" 
 	},
 	{
-		id: 3,
+		slug: "secant",
 		title: "Secant Method",
 		description: "An elegant alternative to Newton-Raphson that eliminates the need for manual differentiation by using finite differences.",
 		Icon: LineDotRightHorizontal,
@@ -44,7 +44,7 @@ const operations: CardProps[] = [
 			{operations.map((operation) => {
 				return (
 					<Card 
-						id={operation.id}
+						slug={operation.slug}
 						title={operation.title}
 						description={operation.description}
 						Icon={operation.Icon}

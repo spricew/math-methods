@@ -6,21 +6,21 @@ import { TrendingDown, ChevronsDownUp, LineDotRightHorizontal } from '@lucide/as
 const operations = [
 	{
 		id: 1,
-		text: "Newton-Raphson",
+		title: "Newton-Raphson",
 		description: "A powerful method for finding roots by using the function's derivative for rapid, quadratic convergence near the solution.",
 		Icon: TrendingDown,
 		variant: "primary"
 	},
 	{
 		id: 2,
-		text: "Bisection Method",
+		title: "Bisection Method",
 		description: "A robust, reliable method based on the Intermediate Value Theorem that repeatedly halves the interval to trap theroot.",
 		Icon: ChevronsDownUp,
 		variant: "secondary"
 	},
 	{
 		id: 3,
-		text: "Secant Method",
+		title: "Secant Method",
 		description: "An elegant alternative to Newton-Raphson that eliminates the need for manual differentiation by using finite differences.",
 		Icon: LineDotRightHorizontal,
 		variant: "tertiary"
@@ -43,7 +43,7 @@ const operations = [
 				return (
 					<Card 
 						id={operation.id}
-						text={operation.text}
+						title={operation.title}
 						description={operation.description}
 						Icon={operation.Icon}
 						variant={operation.variant}
@@ -52,8 +52,8 @@ const operations = [
 			})} -->
 
 			<Card 
-				id= {2}
-				text= "Newton-Raphson"
+				id= {1}
+				title= "Newton-Raphson"
 				description= "A powerful method for finding roots by using the function's derivative for rapid, quadratic convergence near the solution.",
 				Icon= {TrendingDown}
 				variant="primary"
@@ -61,13 +61,11 @@ const operations = [
 
 			<Card 
 				id= {2}
-				text= "Newton-Raphson"
+				title= "Newton-Raphson"
 				description= "A powerful method for finding roots by using the function's derivative for rapid, quadratic convergence near the solution.",
 				Icon= {TrendingDown}
-				variant="primary"
+				variant="secondary"
 			/>
-
-			
 		</div>
 	</main>
 </Layout>

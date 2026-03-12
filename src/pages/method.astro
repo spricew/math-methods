@@ -1,0 +1,24 @@
+---
+import Layout from "@/layouts/Layout.astro";
+---
+
+<Layout title="metodo">
+    <main class="grid grid-cols-2 h-full gap-8 px-24 py-8">
+        <section>
+            <header class="flex flex-col gap-4">
+                <h1 class="text-3xl tracking-tight font-semibold">Parámetros</h1>
+                <p>Resuelve ecuaciones</p>
+            </header>
+            
+            <form class="flex flex-col">
+                <label>COEFICIENTE A</label>
+                <input type="text" placeholder="0" class="bg-surface-container-low">
+                <button class="btn-primary">Calcular</button>
+            </form>
+        </section>
+
+        <section class="rounded-2xl bg-surface-container-lowest">
+            
+        </section>
+    </main>
+</Layout>

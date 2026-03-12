@@ -1,0 +1,53 @@
+---
+import Button from './CircularButton.astro';
+import { ArrowRight } from '@lucide/astro'
+
+interface Props {
+    id: number;
+    Icon: any; 
+    text: string;
+    description: string;
+    variant: "primary" | "secondary" | "tertiary";
+};
+
+const { id, Icon, text, description, variant } = Astro.props;
+---
+
+<div class="flex flex-col justify-start items-start gap-2 aspect-square p-12 rounded-3xl bg-surface-container-lowest">
+    <span class=`squircle flex items-center justify-center size-20 mb-2 ${variant}`>
+        <Icon class="size-8" stroke-width={2.6} />
+    </span>
+    <h2 class="text-2xl tracking-tighter font-semibold">{text}</h2>
+    <p class="text-slate-500 leading-relaxed mb-8 flex-1">
+        {description}
+    </p>
+    
+    <Button 
+        id={id}
+        href="method"
+        Icon={ArrowRight}
+        extraclass='self-end'
+    />
+</div>
+
+<style>
+    .squircle {
+        corner-shape: squircle;
+        border-radius: 5em;
+    }
+    
+    .primary {
+        color: var(--color-primary);
+        background-color: var(--color-primary-background);
+    }
+
+    .secondary {
+        color: var(--color-secondary);
+        background-color: var(--color-secondary-background);
+    }
+
+    .tertiary {
+        color: var(--color-tertiary);
+        background-color: var(--color-tertiary-background);
+    }
+</style>

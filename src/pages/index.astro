@@ -1,0 +1,74 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import Card from '@/components/ui/Card.astro'
+import { TrendingDown, ChevronsDownUp, LineDotRightHorizontal } from '@lucide/astro'
+
+const operations = [
+	{
+		id: 1,
+		text: "Newton-Raphson",
+		description: "A powerful method for finding roots by using the function's derivative for rapid, quadratic convergence near the solution.",
+		Icon: TrendingDown,
+		variant: "primary"
+	},
+	{
+		id: 2,
+		text: "Bisection Method",
+		description: "A robust, reliable method based on the Intermediate Value Theorem that repeatedly halves the interval to trap theroot.",
+		Icon: ChevronsDownUp,
+		variant: "secondary"
+	},
+	{
+		id: 3,
+		text: "Secant Method",
+		description: "An elegant alternative to Newton-Raphson that eliminates the need for manual differentiation by using finite differences.",
+		Icon: LineDotRightHorizontal,
+		variant: "tertiary"
+	} 
+];
+---
+
+<Layout title='MathMethods'>
+
+	<main class="flex flex-col gap-8 h-fit w-full px-24 py-8">
+		<header class="flex flex-col">
+			<span class="text-base tracking-wider font-bold text-primary">ANÁLISIS NUMÉRICO</span>
+			<h1 class="mb-2 text-4xl tracking-tighter font-semibold">Métodos de búsqueda de raíces</h1>
+			<p class="text-lg">Selecciona un método numérico para resolver ecuaciones</p>
+		</header>
+
+		<div class="grid grid-cols-3 gap-4">
+
+			<!-- {operations.map((operation) => {
+				return (
+					<Card 
+						id={operation.id}
+						text={operation.text}
+						description={operation.description}
+						Icon={operation.Icon}
+						variant={operation.variant}
+					/>
+				);
+			})} -->
+
+			<Card 
+				id= {2}
+				text= "Newton-Raphson"
+				description= "A powerful method for finding roots by using the function's derivative for rapid, quadratic convergence near the solution.",
+				Icon= {TrendingDown}
+				variant="primary"
+			/>
+
+			<Card 
+				id= {2}
+				text= "Newton-Raphson"
+				description= "A powerful method for finding roots by using the function's derivative for rapid, quadratic convergence near the solution.",
+				Icon= {TrendingDown}
+				variant="primary"
+			/>
+
+			
+		</div>
+	</main>
+</Layout>
+

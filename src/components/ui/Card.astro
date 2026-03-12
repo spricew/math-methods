@@ -2,12 +2,14 @@
 import CircleButton from './CircleButton.astro';
 import { ArrowRight } from '@lucide/astro'
 
-interface Props {
+type Variant = "primary" | "secondary" | "tertiary";
+
+export interface Props {
     id: number;
     Icon: any; 
     title: string;
     description: string;
-    variant: "primary" | "secondary" | "tertiary";
+    variant: Variant;
 };
 
 const { id, Icon, title, description, variant } = Astro.props;

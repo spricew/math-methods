@@ -1,9 +1,11 @@
 ---
 import Layout from '@/layouts/Layout.astro';
 import Card from '@/components/ui/Card.astro'
+import type { Props as CardProps } from '@/components/ui/Card.astro';
+
 import { TrendingDown, ChevronsDownUp, LineDotRightHorizontal } from '@lucide/astro'
 
-const operations = [
+const operations: CardProps[] = [
 	{
 		id: 1,
 		title: "Newton-Raphson",
@@ -16,7 +18,7 @@ const operations = [
 		title: "Bisection Method",
 		description: "A robust, reliable method based on the Intermediate Value Theorem that repeatedly halves the interval to trap theroot.",
 		Icon: ChevronsDownUp,
-		variant: "secondary"
+		variant: "secondary" 
 	},
 	{
 		id: 3,
@@ -39,7 +41,7 @@ const operations = [
 
 		<div class="grid grid-cols-3 gap-4">
 
-			<!-- {operations.map((operation) => {
+			{operations.map((operation) => {
 				return (
 					<Card 
 						id={operation.id}
@@ -49,31 +51,8 @@ const operations = [
 						variant={operation.variant}
 					/>
 				);
-			})} -->
+			})}
 
-			<Card 
-				id= {1}
-				title= "Newton-Raphson"
-				description= "A powerful method for finding roots by using the function's derivative for rapid, quadratic convergence near the solution."
-				Icon= {TrendingDown}
-				variant="primary"
-			/>
-
-			<Card 
-				id= {2}
-				title= "Bisection Method"
-				description="A robust, reliable method based on the Intermediate Value Theorem that repeatedly halves the interval to trap theroot."
-				Icon= {ChevronsDownUp}
-				variant="secondary"
-			/>
-
-			<Card 
-				id= {3}
-				title= "Secant Method"
-				description="An elegant alternative to Newton-Raphson that eliminates the need for manual differentiation by using finite differences."
-				Icon= {LineDotRightHorizontal}
-				variant="tertiary"
-			/>
 		</div>
 	</main>
 </Layout>

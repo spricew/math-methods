@@ -29,7 +29,7 @@ const tituloMetodo = titulos[slug as string] || slug;
                 <p class="text-slate-500">Resuelve ecuaciones con el método de {tituloMetodo}</p>
             </header>
 
-            <form id="formulario-metodo" class="flex flex-col gap-4">
+            <form id="formulario-metodo" data-method={slug} class="flex flex-col gap-4">
                 
                 <Input label="Función f(x)" type="text" placeholder="ej. x^3 - 2*x + 1" name="funcion" required />
                 
@@ -100,3 +100,164 @@ const tituloMetodo = titulos[slug as string] || slug;
         </section>
     </main>
 </Layout>
+
+<script>
+    import { compile, derivative } from 'mathjs';
+
+    const form = document.getElementById('formulario-metodo') as HTMLFormElement;
+    const resultadoSpan = document.getElementById('resultado-raiz');
+    const tablaBody = document.getElementById('tabla-iteraciones');
+
+    if (form) {
+        form.addEventListener('submit', (e) => {
+            e.preventDefault(); // evita que la página se recargue
+
+            const formData = new FormData(form);
+            const method = form.dataset.method;
+
+            // Variables universales
+            const funcStr = formData.get('funcion') as string;
+            const tol = parseFloat(formData.get('tolerancia') as string);
+            const maxIter = parseInt(formData.get('iteraciones') as string);
+
+            let func;
+            try {
+                // se compila la función matemática (ej. convierte "x^2 - 4" en código ejecutable)
+                func = compile(funcStr);
+            } catch (error) {
+                alert("Error de sintaxis en la función f(x). Asegúrate de usar operadores válidos (ej. 2*x en lugar de 2x).");
+                return;
+            }
+
+            // se crea una función auxiliar rápida para evaluar f(x)
+            const f = (x: number) => func.evaluate({ x });
+            
+            let iteraciones = [];
+            let raizEncontrada = null;
+
+            try {
+               
+                if (method === 'bisection') {
+                    let a = parseFloat(formData.get('a') as string);
+                    let b = parseFloat(formData.get('b') as string);
+
+                    // Validación del Teorema de Bolzano
+                    if (f(a) * f(b) >= 0) {
+                        alert("Error: f(a) y f(b) deben tener signos opuestos. No se garantiza una raíz en este intervalo.");
+                        return;
+                    }
+
+                    let c_viejo = a;
+                    for (let i = 1; i <= maxIter; i++) {
+                        let c = (a + b) / 2;
+                        let fc = f(c);
+                        let error = Math.abs((c - c_viejo) / c) * 100;
+                        if (i === 1) error = 100; // En la primera iteración el error es del 100%
+
+                        iteraciones.push({ iter: i, x: c, fx: fc, error: error });
+
+                        if (error < tol || fc === 0) {
+                            raizEncontrada = c;
+                            break;
+                        }
+
+                        // Reasignamos los límites
+                        if (f(a) * fc < 0) {
+                            b = c;
+                        } else {
+                            a = c;
+                        }
+                        c_viejo = c;
+                        raizEncontrada = c; // Por si alcanza el límite de iteraciones
+                    }
+                } 
+              
+                else if (method === 'newton-raphson') {
+                    let x0 = parseFloat(formData.get('x0') as string);
+                    let derivStr = formData.get('derivada') as string;
+                    let df;
+
+                    // Si el usuario no escribió la derivada, mathjs la calcula automáticamente
+                    if (derivStr) {
+                        const derivNode = compile(derivStr);
+                        df = (x: number) => derivNode.evaluate({ x });
+                    } else {
+                        const derivNode = derivative(funcStr, 'x');
+                        df = (x: number) => derivNode.evaluate({ x });
+                    }
+
+                    let x_viejo = x0;
+                    for (let i = 1; i <= maxIter; i++) {
+                        let fx = f(x_viejo);
+                        let dfx = df(x_viejo);
+
+                        if (dfx === 0) {
+                            alert("La derivada es cero. El método de Newton-Raphson falla en este punto.");
+                            return;
+                        }
+
+                        let x_nuevo = x_viejo - (fx / dfx);
+                        let error = Math.abs((x_nuevo - x_viejo) / x_nuevo) * 100;
+
+                        iteraciones.push({ iter: i, x: x_nuevo, fx: f(x_nuevo), error: error });
+
+                        if (error < tol || f(x_nuevo) === 0) {
+                            raizEncontrada = x_nuevo;
+                            break;
+                        }
+                        x_viejo = x_nuevo;
+                        raizEncontrada = x_nuevo;
+                    }
+                }
+                
+                else if (method === 'secant') {
+                    let x0 = parseFloat(formData.get('x0') as string);
+                    let x1 = parseFloat(formData.get('x1') as string);
+
+                    for (let i = 1; i <= maxIter; i++) {
+                        let fx0 = f(x0);
+                        let fx1 = f(x1);
+
+                        if (fx1 - fx0 === 0) {
+                            alert("División por cero. El método de la secante falla con estos valores.");
+                            return;
+                        }
+
+                        let x_nuevo = x1 - fx1 * ((x1 - x0) / (fx1 - fx0));
+                        let error = Math.abs((x_nuevo - x1) / x_nuevo) * 100;
+
+                        iteraciones.push({ iter: i, x: x_nuevo, fx: f(x_nuevo), error: error });
+
+                        if (error < tol || f(x_nuevo) === 0) {
+                            raizEncontrada = x_nuevo;
+                            break;
+                        }
+                        x0 = x1;
+                        x1 = x_nuevo;
+                        raizEncontrada = x_nuevo;
+                    }
+                }
+
+                if (resultadoSpan && raizEncontrada !== null) {
+                    resultadoSpan.textContent = raizEncontrada.toFixed(6);
+                }
+
+                if (tablaBody) {
+                    tablaBody.innerHTML = iteraciones.map(it => `
+                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                            <td class="py-3 px-2">${it.iter}</td>
+                            <td class="py-3 px-2 font-mono">${it.x.toFixed(6)}</td>
+                            <td class="py-3 px-2 font-mono text-slate-500">${it.fx.toExponential(4)}</td>
+                            <td class="py-3 px-2 font-mono ${(it.error < tol && it.iter !== 1) ? 'text-green-600 font-bold' : ''}">
+                                ${it.iter === 1 && method === 'bisection' ? '-' : it.error.toFixed(4) + '%'}
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+
+            } catch (error) {
+                alert("Ocurrió un error inesperado durante el cálculo: " + error.message);
+            }
+        });
+    }
+</script>

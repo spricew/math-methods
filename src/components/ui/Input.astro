@@ -9,12 +9,12 @@ interface Props extends HTMLAttributes<'input'> {
 const { label, extraclass, ...rest } = Astro.props;
 ---
 <div class="flex flex-col gap-2">
-    {label && (<label class="text-base font-medium">{label}</label>)}
+    {label && (<label class="text-base font-medium text-neutral-500">{label}</label>)}
     <input
     type="text"
     placeholder="0"
     class:list={[
-        "px-5 py-3 rounded-xl ring ring-outline-variant bg-surface-container-lowest",
+        "px-5 py-3 rounded-full ring ring-black/15 ring-inset bg-surface-container-lowest",
         extraclass
     ]}
     {...rest}

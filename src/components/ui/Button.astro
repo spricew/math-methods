@@ -3,7 +3,7 @@ import type { HTMLAttributes } from "astro/types";
 
 interface Props extends HTMLAttributes<"button"> {
     text: string;
-    variant?: "primary" | "secondary" | "tertiary";
+    variant?: "primary" | "secondary" | "tertiary" | "danger";
     extraclass?: string;
 }
 
@@ -13,13 +13,14 @@ const variantStyles = {
     primary: "bg-primary-container text-on-primary",
     secondary: "bg-secondary text-on-secondary",
     tertiary: "bg-tertiary text-on-tertiary",
+    danger: "bg-error-container text-on-error-container",
 };
 ---
 
 <button
     class:list={[
-        `inline-flex items-center gap-2 py-2 px-3.5 w-fit h-fit
-        rounded-full font-base font-medium
+        `inline-flex items-center justify-center gap-2 py-2 px-3.5 w-fit h-fit
+        rounded-xl font-base font-medium
         transition-transform duration-300 ease-out 
         hover:scale-105 cursor-pointer`,
         variantStyles[variant],

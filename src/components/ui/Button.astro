@@ -4,10 +4,11 @@ import type { HTMLAttributes } from "astro/types";
 interface Props extends HTMLAttributes<"button"> {
     text: string;
     variant?: "primary" | "secondary" | "tertiary" | "danger";
+    shadow?: boolean;
     extraclass?: string;
 }
 
-const { text, variant = "primary", extraclass, ...rest } = Astro.props;
+const { text, variant = "primary", shadow = false, extraclass, ...rest } = Astro.props;
 
 const variantStyles = {
     primary: "bg-primary-container text-on-primary",
@@ -24,6 +25,8 @@ const variantStyles = {
         transition-transform duration-300 ease-out 
         hover:scale-105 cursor-pointer`,
         variantStyles[variant],
+        // Corregido: La sintaxis de objeto es { "clases" : condicion }
+        { "shadow-[0px_4px_6px_-4px_rgba(19,127,236,0.20)] shadow-[0px_10px_15px_-3px_rgba(19,127,236,0.20)]": shadow },
         extraclass
     ]}
     {...rest}

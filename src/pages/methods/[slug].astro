@@ -60,11 +60,9 @@ const tituloMetodo = titulos[slug as string] || slug;
                     </div>
                 )}
 
-                <div class="flex gap-4 mt-4">
-                    <Button text="Enviar" variant="secondary" />
-                    <Button text="Click aquí" variant="primary"/>
-                    <!-- <button type="submit" class="btn-primary flex-1">Calcular</button> -->
-                    <button type="reset" class="px-6 py-2 rounded-xl ring-2 ring-outline-variant bg-transparent text-slate-500 hover:bg-slate-100 transition-colors">Limpiar</button>
+                <div class="flex gap-2 mt-4">
+                    <Button type="submit" text="Calcular" variant="primary" extraclass="flex-1"/>
+                    <Button type="reset" text="Limpiar" variant="danger"/>
                 </div>
             </form>
         </section>

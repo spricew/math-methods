@@ -191,7 +191,6 @@ html,
 body {
     height: 100%;
     width: 100%;
-    overflow: hidden;
     font-family: "DM Sans", system-ui, Arial, Helvetica, sans-serif;
     background-color: var(--color-background);
     color: var(--color-on-surface);

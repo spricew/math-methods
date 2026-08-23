@@ -256,7 +256,7 @@ const tituloMetodo = titulos[slug as string] || slug;
                     `).join('');
                 }
 
-            } catch (error) {
+            } catch (error:any) {
                 alert("Ocurrió un error inesperado durante el cálculo: " + error.message);  
             }
         });

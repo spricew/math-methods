@@ -1,33 +1,25 @@
 ---
 import Layout from '@/layouts/Layout.astro';
 import Card from '@/components/ui/Card.astro'
-import type { Props as CardProps } from '@/components/ui/Card.astro';
 
+import { METHODS, type MethodId } from '@/data/methods';
 import { TrendingDown, ChevronsDownUp, LineDotRightHorizontal } from '@lucide/astro'
 
-const operations: CardProps[] = [
-	{
-		slug: "newton-raphson",
-		title: "Newton-Raphson",
-		description: "Un método poderoso para encontrar raíces utilizando la derivada de la función para una convergencia rápida y cuadrática cerca de la solución.",
-		Icon: TrendingDown,
-		variant: "primary"
-	},
-	{
-		slug: "bisection",
-		title: "Bisection Method",
-		description: "Un método robusto y fiable basado en el Teorema del Valor Intermedio que divide repetidamente el intervalo por la mitad para atrapar la raíz.",
-		Icon: ChevronsDownUp,
-		variant: "secondary" 
-	},
-	{
-		slug: "secant",
-		title: "Secant Method",
-		description: "Una alternativa elegante a Newton-Raphson que elimina la necesidad de diferenciación manual mediante el uso de diferencias finitas.",
-		Icon: LineDotRightHorizontal,
-		variant: "tertiary"
-	} 
-];
+type Variant = 'primary' | 'secondary' | 'tertiary';
+
+interface Presentacion {
+	Icon: typeof TrendingDown;
+	variant: Variant;
+}
+
+// La presentación (icono y color) es responsabilidad de esta página, no de los datos
+const presentacion: Record<MethodId, Presentacion> = {
+	'newton-raphson': { Icon: TrendingDown, variant: 'primary' },
+	bisection: { Icon: ChevronsDownUp, variant: 'secondary' },
+	secant: { Icon: LineDotRightHorizontal, variant: 'tertiary' }
+};
+
+const operaciones = METHODS.map((metodo) => ({ ...metodo, ...presentacion[metodo.id] }));
 ---
 
 <Layout title='MathMethods'>
@@ -41,19 +33,16 @@ const operations: CardProps[] = [
 
 		<div class="grid grid-cols-3 gap-4">
 
-			{operations.map((operation) => {
-				return (
-					<Card 
-						slug={operation.slug}
-						title={operation.title}
-						description={operation.description}
-						Icon={operation.Icon}
-						variant={operation.variant}
-					/>
-				);
-			})}
+			{operaciones.map((operacion) => (
+				<Card
+					slug={operacion.slug}
+					title={operacion.titulo}
+					description={operacion.descripcion}
+					Icon={operacion.Icon}
+					variant={operacion.variant}
+				/>
+			))}
 
 		</div>
 	</main>
 </Layout>
-

@@ -2,35 +2,29 @@
 import Layout from "@/layouts/Layout.astro";
 import Input from "@/components/ui/Input.astro";
 import Button from "@/components/ui/Button.astro";
+import { METHODS, type Metodo } from "@/data/methods";
 
 export function getStaticPaths() {
-    return [
-        { params: { slug: 'newton-raphson' } },
-        { params: { slug: 'bisection' } },
-        { params: { slug: 'secant' } },
-    ];
+    return METHODS.map((metodo) => ({ params: { slug: metodo.slug }, props: { metodo } }));
 }
 
-const { slug } = Astro.params;
+interface Props {
+    metodo: Metodo;
+}
 
-const titulos: Record<string, string> = {
-    'newton-raphson': 'Newton-Raphson',
-    'bisection': 'Bisección',
-    'secant': 'Secante'
-};
-const tituloMetodo = titulos[slug as string] || slug;
+const { metodo } = Astro.props;
 ---
 
-<Layout title={`Método de ${tituloMetodo}`}>
+<Layout title={`Método de ${metodo.titulo}`}>
     <main class="grid grid-cols-2 h-full gap-8 px-24 py-8">
         
         <section class="flex flex-col gap-6">
             <header class="flex flex-col gap-1">
                 <h1 class="text-3xl tracking-tight font-semibold">Parámetros</h1>
-                <p class="text-slate-500">Resuelve ecuaciones con el método de {tituloMetodo}</p>
+                <p class="text-slate-500">Resuelve ecuaciones con el método de {metodo.titulo}</p>
             </header>
 
-            <form id="formulario-metodo" data-method={slug} class="flex flex-col gap-4">
+            <form id="formulario-metodo" data-method={metodo.slug} class="flex flex-col gap-4">
                 
                 <Input label="Función f(x)" type="text" placeholder="ej. x^3 - 2*x + 1" name="funcion" required />
                 
@@ -39,24 +33,20 @@ const tituloMetodo = titulos[slug as string] || slug;
                     <Input label="Max. Iteraciones" type="number" min="1" placeholder="ej. 50" name="iteraciones" value="50" required />
                 </div>
 
-                {slug === 'bisection' && (
+                {metodo.campos.length > 0 && (
                     <div class="grid grid-cols-2 gap-4">
-                        <Input label="Límite Inferior (a)" type="number" step="any" placeholder="0" name="a" required />
-                        <Input label="Límite Superior (b)" type="number" step="any" placeholder="1" name="b" required />
-                    </div>
-                )}
-
-                {slug === 'newton-raphson' && (
-                    <div class="grid grid-cols-1 gap-4">
-                        <Input label="Valor Inicial (x0)" type="number" step="any" placeholder="1" name="x0" required />
-                        <Input label="Derivada f'(x) (Opcional)" type="text" placeholder="ej. 3*x^2 - 2" name="derivada" />
-                    </div>
-                )}
-
-                {slug === 'secant' && (
-                    <div class="grid grid-cols-2 gap-4">
-                        <Input label="Valor Inicial 1 (x0)" type="number" step="any" placeholder="0" name="x0" required />
-                        <Input label="Valor Inicial 2 (x1)" type="number" step="any" placeholder="1" name="x1" required />
+                        {metodo.campos.map((campo) => (
+                            <div class={campo.ancho === 'completo' ? 'col-span-2' : ''}>
+                                <Input
+                                    label={campo.label}
+                                    type={campo.tipo ?? 'number'}
+                                    step={campo.paso}
+                                    placeholder={campo.placeholder}
+                                    name={campo.nombre}
+                                    required={campo.requerido === true}
+                                />
+                            </div>
+                        ))}
                     </div>
                 )}
 
@@ -112,21 +102,17 @@ const tituloMetodo = titulos[slug as string] || slug;
 </Layout>
 
 <script>
-    import { compile, derivative } from 'mathjs';
-
-    type Iteracion = { iter: number; x: number; fx: number; error: number | null };
+    import { METHODS } from '@/data/methods';
+    import { ErrorDeMetodo, type Iteracion, type ResultadoMetodo } from '@/lib/numerical/types';
+    import { crearFuncionSegura, leerNumero } from '@/lib/numerical/evaluacion';
+    import { biseccion } from '@/lib/numerical/biseccion';
+    import { newtonRaphson } from '@/lib/numerical/newton';
+    import { secante } from '@/lib/numerical/secante';
 
     const form = document.getElementById('formulario-metodo') as HTMLFormElement | null;
     const resultadoSpan = document.getElementById('resultado-raiz');
     const resultadoStatus = document.getElementById('resultado-status');
     const tablaBody = document.getElementById('tabla-iteraciones');
-
-    const FILA_PLACEHOLDER = `
-        <tr>
-            <td colspan="4" class="py-4 text-center text-slate-400">
-                Ingresa los datos y presiona calcular para ver el procedimiento.
-            </td>
-        </tr>`;
 
     const formatoError = (error: number | null): string => {
         if (error === null) return '-';
@@ -135,262 +121,194 @@ const tituloMetodo = titulos[slug as string] || slug;
     };
 
     if (form) {
-        const errorBox = document.getElementById('error-formulario');
-        const botonCalcular = form.querySelector<HTMLButtonElement>('button[type="submit"]');
-        const textoBoton = botonCalcular?.textContent ?? 'Calcular';
+        // El slug viaja en el DOM pero se valida contra el registro tipado de métodos
+        const metodoDef = METHODS.find((m) => m.slug === form.dataset.method);
 
-        let camposInvalidos: HTMLElement[] = [];
+        if (!metodoDef) {
+            console.error(`Método desconocido: ${form.dataset.method}`);
+        } else {
+            const errorBox = document.getElementById('error-formulario');
+            const botonCalcular = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+            const textoBoton = botonCalcular?.textContent ?? 'Calcular';
+            const tablaPlaceholder = tablaBody?.innerHTML ?? '';
 
-        const limpiarError = () => {
-            for (const campo of camposInvalidos) campo.removeAttribute('aria-invalid');
-            camposInvalidos = [];
-            if (errorBox) errorBox.hidden = true;
-        };
+            let camposInvalidos: HTMLElement[] = [];
 
-        // Muestra el mensaje en la caja del formulario y marca los campos responsables
-        const mostrarError = (mensaje: string, campos: string[] = []) => {
-            for (const nombre of campos) {
-                const campo = form.elements.namedItem(nombre);
-                if (campo instanceof HTMLElement) {
-                    campo.setAttribute('aria-invalid', 'true');
-                    camposInvalidos.push(campo);
-                }
-            }
-            if (errorBox) {
-                errorBox.textContent = mensaje;
-                errorBox.hidden = false;
-            }
-        };
-
-        const establecerCargando = (cargando: boolean) => {
-            if (!botonCalcular) return;
-            botonCalcular.disabled = cargando;
-            botonCalcular.textContent = cargando ? 'Calculando…' : textoBoton;
-        };
-
-        // El botón "Limpiar" también restaura la zona de resultados y los errores
-        form.addEventListener('reset', () => {
-            limpiarError();
-            establecerCargando(false);
-            if (resultadoSpan) resultadoSpan.textContent = '--';
-            if (resultadoStatus) resultadoStatus.textContent = '';
-            if (tablaBody) tablaBody.innerHTML = FILA_PLACEHOLDER;
-        });
-
-        form.addEventListener('submit', (e) => {
-            e.preventDefault(); // evita que la página se recargue
-            limpiarError();
-
-            const formData = new FormData(form);
-
-            // Validación de datos comunes antes de calcular
-            const tol = parseFloat(formData.get('tolerancia') as string);
-            const maxIter = parseInt(formData.get('iteraciones') as string);
-            let datosValidos = true;
-
-            if (!Number.isFinite(tol) || tol <= 0) {
-                mostrarError('La tolerancia debe ser un número mayor que cero.', ['tolerancia']);
-                datosValidos = false;
-            }
-            if (!Number.isInteger(maxIter) || maxIter < 1) {
-                mostrarError('El máximo de iteraciones debe ser un entero mayor o igual a 1.', ['iteraciones']);
-                datosValidos = false;
-            }
-            if (!datosValidos) return;
-
-            establecerCargando(true);
-            // Se difiere el cálculo para que el navegador pinte el estado de carga primero
-            setTimeout(() => {
-                try {
-                    calcular(formData, form.dataset.method as string, tol, maxIter);
-                } finally {
-                    establecerCargando(false);
-                }
-            }, 30);
-        });
-
-        function calcular(formData: FormData, method: string, tol: number, maxIter: number) {
-            const funcStr = formData.get('funcion') as string;
-
-            let func;
-            try {
-                // se compila la función matemática (ej. convierte "x^2 - 4" en código ejecutable)
-                func = compile(funcStr);
-            } catch {
-                mostrarError("Error de sintaxis en la función f(x). Asegúrate de usar operadores válidos (ej. 2*x en lugar de 2x).", ['funcion']);
-                return;
-            }
-
-            // evalúa f(x) garantizando un resultado numérico finito
-            const f = (x: number): number => {
-                const y = func.evaluate({ x });
-                if (typeof y !== 'number' || !Number.isFinite(y)) {
-                    throw new Error(`f(${x}) no produce un valor finito (obtuvo ${y}). Revisa la función o los valores iniciales.`);
-                }
-                return y;
+            const limpiarError = () => {
+                for (const campo of camposInvalidos) campo.removeAttribute('aria-invalid');
+                camposInvalidos = [];
+                if (errorBox) errorBox.hidden = true;
             };
 
-            let iteraciones: Iteracion[] = [];
-            let raiz: number | null = null;
-            let convergio = false;
-
-            try {
-
-                if (method === 'bisection') {
-                    let a = parseFloat(formData.get('a') as string);
-                    let b = parseFloat(formData.get('b') as string);
-
-                    if (!Number.isFinite(a) || !Number.isFinite(b)) {
-                        mostrarError("Los límites a y b deben ser números válidos.", ['a', 'b']);
-                        return;
-                    }
-
-                    if (a >= b) {
-                        mostrarError("El límite inferior (a) debe ser menor que el límite superior (b).", ['a', 'b']);
-                        return;
-                    }
-
-                    // Validación del Teorema de Bolzano
-                    if (f(a) * f(b) >= 0) {
-                        mostrarError("f(a) y f(b) deben tener signos opuestos. No se garantiza una raíz en este intervalo.", ['a', 'b', 'funcion']);
-                        return;
-                    }
-
-                    let cPrevio: number | null = null;
-                    for (let i = 1; i <= maxIter; i++) {
-                        const c = (a + b) / 2;
-                        const fc = f(c);
-                        // Sin punto medio previo no hay error que calcular (iter 1 => null)
-                        const error = cPrevio === null ? null : Math.abs((c - cPrevio) / c) * 100;
-
-                        iteraciones.push({ iter: i, x: c, fx: fc, error });
-
-                        if ((error !== null && error < tol) || fc === 0) {
-                            raiz = c;
-                            convergio = true;
-                            break;
-                        }
-
-                        // Reasignamos los límites
-                        if (f(a) * fc < 0) {
-                            b = c;
-                        } else {
-                            a = c;
-                        }
-                        cPrevio = c;
-                        raiz = c;
+            // Muestra el mensaje en la caja del formulario y marca los campos responsables
+            const mostrarError = (mensaje: string, campos: string[] = []) => {
+                for (const nombre of campos) {
+                    const campo = form.elements.namedItem(nombre);
+                    if (campo instanceof HTMLElement) {
+                        campo.setAttribute('aria-invalid', 'true');
+                        camposInvalidos.push(campo);
                     }
                 }
+                if (errorBox) {
+                    errorBox.textContent = mensaje;
+                    errorBox.hidden = false;
+                }
+            };
 
-                else if (method === 'newton-raphson') {
-                    let xPrevio = parseFloat(formData.get('x0') as string);
+            const establecerCargando = (cargando: boolean) => {
+                if (!botonCalcular) return;
+                botonCalcular.disabled = cargando;
+                botonCalcular.textContent = cargando ? 'Calculando…' : textoBoton;
+            };
 
-                    if (!Number.isFinite(xPrevio)) {
-                        mostrarError("El valor inicial x0 debe ser un número válido.", ['x0']);
-                        return;
-                    }
+            // El botón "Limpiar" también restaura la zona de resultados y los errores
+            form.addEventListener('reset', () => {
+                limpiarError();
+                establecerCargando(false);
+                if (resultadoSpan) resultadoSpan.textContent = '--';
+                if (resultadoStatus) resultadoStatus.textContent = '';
+                if (tablaBody) tablaBody.innerHTML = tablaPlaceholder;
+            });
 
-                    const derivStr = formData.get('derivada') as string;
-                    let df;
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                limpiarError();
 
+                const datos = new FormData(form);
+                const tol = parseFloat(datos.get('tolerancia') as string);
+                const maxIter = parseInt(datos.get('iteraciones') as string);
+                let datosValidos = true;
+
+                if (!Number.isFinite(tol) || tol <= 0) {
+                    mostrarError('La tolerancia debe ser un número mayor que cero.', ['tolerancia']);
+                    datosValidos = false;
+                }
+                if (!Number.isInteger(maxIter) || maxIter < 1) {
+                    mostrarError('El máximo de iteraciones debe ser un entero mayor o igual a 1.', ['iteraciones']);
+                    datosValidos = false;
+                }
+                if (!datosValidos) return;
+
+                establecerCargando(true);
+                // pequeña pausa para que el navegador pinte el estado de carga antes del cálculo
+                new Promise((resuelto) => setTimeout(resuelto, 30))
+                    .then(() => calcular(metodoDef.id, datos, tol, maxIter))
+                    .finally(() => establecerCargando(false));
+            });
+
+            async function calcular(metodo: Metodo['id'], datos: FormData, tolerancia: number, maxIteraciones: number) {
+                try {
+                    // Carga diferida: mathjs (~500 kB) solo se descarga al primer cálculo
+                    const { compile, derivative } = await import('mathjs');
+
+                    const funcStr = datos.get('funcion') as string;
+
+                    let funcCompilada;
                     try {
-                        // Si el usuario no escribió la derivada, mathjs la calcula automáticamente
-                        if (derivStr) {
-                            const derivNode = compile(derivStr);
-                            df = (x: number) => derivNode.evaluate({ x });
-                        } else {
-                            const derivNode = derivative(funcStr, 'x');
-                            df = (x: number) => derivNode.evaluate({ x });
-                        }
+                        funcCompilada = compile(funcStr);
                     } catch {
-                        mostrarError("Error de sintaxis en la derivada f'(x). Asegúrate de usar operadores válidos (ej. 3*x^2 en lugar de 3x²).", ['derivada']);
+                        mostrarError(
+                            "Error de sintaxis en la función f(x). Asegúrate de usar operadores válidos (ej. 2*x en lugar de 2x).",
+                            ['funcion']
+                        );
+                        return;
+                    }
+                    const f = crearFuncionSegura((x) => funcCompilada.evaluate({ x }));
+
+                    let resultado: ResultadoMetodo;
+                    try {
+                        switch (metodo) {
+                            case 'bisection':
+                                resultado = biseccion(f, {
+                                    a: leerNumero(datos, 'a', 'El límite inferior (a)'),
+                                    b: leerNumero(datos, 'b', 'El límite superior (b)'),
+                                    tolerancia,
+                                    maxIteraciones
+                                });
+                                break;
+
+                            case 'newton-raphson': {
+                                const x0 = leerNumero(datos, 'x0', 'El valor inicial (x0)');
+                                const derivStr = (datos.get('derivada') as string).trim();
+
+                                // Si el usuario no escribió la derivada, mathjs la calcula automáticamente
+                                let df;
+                                try {
+                                    df = derivStr
+                                        ? crearFuncionSegura((x) => compile(derivStr).evaluate({ x }))
+                                        : crearFuncionSegura((x) => derivative(funcStr, 'x').evaluate({ x }));
+                                } catch {
+                                    mostrarError(
+                                        "Error de sintaxis en la derivada f'(x). Asegúrate de usar operadores válidos (ej. 3*x^2 en lugar de 3x²).",
+                                        ['derivada']
+                                    );
+                                    return;
+                                }
+
+                                resultado = newtonRaphson(f, df, { x0, tolerancia, maxIteraciones });
+                                break;
+                            }
+
+                            case 'secant':
+                                resultado = secante(f, {
+                                    x0: leerNumero(datos, 'x0', 'El valor inicial 1 (x0)'),
+                                    x1: leerNumero(datos, 'x1', 'El valor inicial 2 (x1)'),
+                                    tolerancia,
+                                    maxIteraciones
+                                });
+                                break;
+
+                            default:
+                                return;
+                        }
+                    } catch (error) {
+                        if (error instanceof ErrorDeMetodo) {
+                            mostrarError(error.message, error.campos);
+                        } else {
+                            mostrarError(error instanceof Error ? error.message : String(error));
+                        }
                         return;
                     }
 
-                    for (let i = 1; i <= maxIter; i++) {
-                        const fx = f(xPrevio);
-                        const dfx = df(xPrevio);
-
-                        if (!Number.isFinite(dfx)) {
-                            throw new Error(`La derivada no es finita en x = ${xPrevio}. Prueba otro valor inicial o indica f'(x).`);
-                        }
-                        if (dfx === 0) {
-                            throw new Error(`La derivada es cero en x = ${xPrevio}. El método de Newton-Raphson falla en este punto.`);
-                        }
-
-                        const xNuevo = xPrevio - (fx / dfx);
-                        const error = Math.abs((xNuevo - xPrevio) / xNuevo) * 100;
-
-                        iteraciones.push({ iter: i, x: xNuevo, fx: f(xNuevo), error });
-
-                        if (error < tol || f(xNuevo) === 0) {
-                            raiz = xNuevo;
-                            convergio = true;
-                            break;
-                        }
-                        xPrevio = xNuevo;
-                        raiz = xNuevo;
-                    }
-                }
-
-                else if (method === 'secant') {
-                    let x0 = parseFloat(formData.get('x0') as string);
-                    let x1 = parseFloat(formData.get('x1') as string);
-
-                    if (!Number.isFinite(x0) || !Number.isFinite(x1)) {
-                        mostrarError("Los valores iniciales x0 y x1 deben ser números válidos.", ['x0', 'x1']);
-                        return;
-                    }
-
-                    for (let i = 1; i <= maxIter; i++) {
-                        const fx0 = f(x0);
-                        const fx1 = f(x1);
-
-                        if (fx1 - fx0 === 0) {
-                            throw new Error("División por cero: f(x0) y f(x1) son iguales. El método de la secante falla con estos valores.");
-                        }
-
-                        const xNuevo = x1 - fx1 * ((x1 - x0) / (fx1 - fx0));
-                        const error = Math.abs((xNuevo - x1) / xNuevo) * 100;
-
-                        iteraciones.push({ iter: i, x: xNuevo, fx: f(xNuevo), error });
-
-                        if (error < tol || f(xNuevo) === 0) {
-                            raiz = xNuevo;
-                            convergio = true;
-                            break;
-                        }
-                        x0 = x1;
-                        x1 = xNuevo;
-                        raiz = xNuevo;
-                    }
-                }
-
-                if (raiz !== null && Number.isFinite(raiz)) {
-                    if (resultadoSpan) resultadoSpan.textContent = raiz.toFixed(6);
+                    if (resultadoSpan) resultadoSpan.textContent = resultado.raiz.toFixed(6);
                     if (resultadoStatus) {
-                        resultadoStatus.textContent = convergio
-                            ? `Convergió en ${iteraciones.length} iteración(es).`
-                            : `No convergió en ${maxIter} iteraciones. Este valor es solo la última aproximación.`;
+                        resultadoStatus.textContent = resultado.convergio
+                            ? `Convergió en ${resultado.iteraciones.length} iteración(es).`
+                            : `No convergió en ${maxIteraciones} iteraciones. Este valor es solo la última aproximación.`;
                     }
-                }
 
-                if (tablaBody) {
-                    tablaBody.innerHTML = iteraciones.map(it => `
-                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                            <td class="py-3 px-2">${it.iter}</td>
-                            <td class="py-3 px-2 font-mono">${it.x.toFixed(6)}</td>
-                            <td class="py-3 px-2 font-mono text-slate-500">${it.fx.toExponential(4)}</td>
-                            <td class="py-3 px-2 font-mono ${it.error !== null && it.error < tol ? 'text-green-600 font-bold' : ''}">
-                                ${formatoError(it.error)}
-                            </td>
-                        </tr>
-                    `).join('');
+                    renderizarTabla(resultado.iteraciones, tolerancia);
+                } catch (error) {
+                    mostrarError(error instanceof Error ? error.message : String(error));
                 }
+            }
 
-            } catch (error: unknown) {
-                const mensaje = error instanceof Error ? error.message : String(error);
-                mostrarError(mensaje);
+            function renderizarTabla(iteraciones: Iteracion[], tolerancia: number) {
+                if (!tablaBody) return;
+
+                tablaBody.replaceChildren();
+                for (const it of iteraciones) {
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-b border-slate-100 hover:bg-slate-50 transition-colors';
+
+                    const celdas: Array<[string, string]> = [
+                        ['py-3 px-2', String(it.iter)],
+                        ['py-3 px-2 font-mono', it.x.toFixed(6)],
+                        ['py-3 px-2 font-mono text-slate-500', it.fx.toExponential(4)],
+                        [
+                            `py-3 px-2 font-mono${it.error !== null && it.error < tolerancia ? ' text-green-600 font-bold' : ''}`,
+                            formatoError(it.error)
+                        ]
+                    ];
+
+                    for (const [clases, texto] of celdas) {
+                        const td = document.createElement('td');
+                        td.className = clases;
+                        td.textContent = texto;
+                        tr.appendChild(td);
+                    }
+                    tablaBody.appendChild(tr);
+                }
             }
         }
     }

@@ -1,10 +1,5 @@
 @import "tailwindcss";
 
-/* *{
-  outline: red  solid 1px;
-  box-sizing: border-box;
-} */
-
 @theme {
     --color-black-primary: #1b1b1b;
     --color-on-black-primary: #FFFFFF;
@@ -170,34 +165,4 @@ body {
     font-family: "DM Sans", system-ui, Arial, Helvetica, sans-serif;
     background-color: var(--color-background);
     color: var(--color-on-surface);
-}
-
-.section-title {
-    font-size: 2.4rem;
-    letter-spacing: var(--spacing-text-title);
-}
-
-.subtitle {
-    font-size: 1.8rem;
-    letter-spacing: var(--spacing-text-title);
-}
-
-@keyframes bounceIn {
-    0% {
-        scale: 0;
-        filter: blur(12px);
-    }
-
-    30% {
-        scale: 1.05;
-        filter: blur(0);
-    }
-
-    60% {
-        scale: 0.995;
-    }
-
-    100% {
-        scale: 1;
-    }
 }

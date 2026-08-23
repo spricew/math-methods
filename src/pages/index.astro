@@ -12,7 +12,6 @@ interface Presentacion {
 	variant: Variant;
 }
 
-// La presentación (icono y color) es responsabilidad de esta página, no de los datos
 const presentacion: Record<MethodId, Presentacion> = {
 	'newton-raphson': { Icon: TrendingDown, variant: 'primary' },
 	bisection: { Icon: ChevronsDownUp, variant: 'secondary' },
@@ -24,14 +23,14 @@ const operaciones = METHODS.map((metodo) => ({ ...metodo, ...presentacion[metodo
 
 <Layout title='MathMethods'>
 
-	<main class="flex flex-col justify-center gap-8 w-full px-24 py-8">
+	<main class="flex flex-col justify-center gap-8 w-full px-6 md:px-12 lg:px-24 py-8">
 		<header class="flex flex-col">
 			<span class="text-sm tracking-wider font-bold text-primary">ANÁLISIS NUMÉRICO</span>
-			<h1 class="mb-2 text-4xl tracking-tighter font-semibold">Métodos de búsqueda de raíces</h1>
+			<h1 class="mb-2 text-3xl md:text-4xl tracking-tighter font-semibold">Métodos de búsqueda de raíces</h1>
 			<p class="text-lg">Selecciona un método numérico para resolver ecuaciones</p>
 		</header>
 
-		<div class="grid grid-cols-3 gap-4">
+		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
 			{operaciones.map((operacion) => (
 				<Card

@@ -1,9 +1,36 @@
 ---
 import Logotype from "@/assets/Logotype.astro"
+import { METHODS } from "@/data/methods";
+
+const rutaActual = Astro.url.pathname;
+
+const enlaces = [
+	{ href: '/', label: 'Inicio' },
+	...METHODS.map((metodo) => ({ href: `/methods/${metodo.slug}/`, label: metodo.titulo }))
+];
+
+const esActivo = (href: string) => (href === '/' ? rutaActual === '/' : rutaActual.startsWith(href));
 ---
-<nav class="flex justify-between items-center w-full h-20 px-24 bg-surface-container-lowest">
-    <a href="/" class="flex items-center gap-2 text-2xl tracking-tight font-semibold">
+<nav class="flex justify-between items-center w-full h-20 px-6 md:px-12 lg:px-24 bg-surface-container-lowest">
+    <a href="/" class="flex items-center gap-2 text-2xl tracking-tight font-semibold" aria-label="MathMethods - Inicio">
         <Logotype />
         MathMethods
     </a>
+
+    <ul class="flex items-center gap-6 overflow-x-auto">
+        {enlaces.map((enlace) => (
+            <li>
+                <a
+                    href={enlace.href}
+                    aria-current={esActivo(enlace.href) ? 'page' : undefined}
+                    class:list={[
+                        'text-sm font-medium text-neutral-500 transition-colors hover:text-on-surface whitespace-nowrap',
+                        esActivo(enlace.href) && 'text-primary font-semibold'
+                    ]}
+                >
+                    {enlace.label}
+                </a>
+            </li>
+        ))}
+    </ul>
 </nav>

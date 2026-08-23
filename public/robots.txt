@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://math-methods-taupe.vercel.app/sitemap-index.xml

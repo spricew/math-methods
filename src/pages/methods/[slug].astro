@@ -16,7 +16,7 @@ const { metodo } = Astro.props;
 ---
 
 <Layout title={`Método de ${metodo.titulo}`}>
-    <main class="grid grid-cols-2 h-full gap-8 px-24 py-8">
+    <main class="grid grid-cols-1 lg:grid-cols-2 h-full gap-8 px-6 md:px-12 lg:px-24 py-8">
         
         <section class="flex flex-col gap-6">
             <header class="flex flex-col gap-1">
@@ -79,12 +79,15 @@ const { metodo } = Astro.props;
                 <h2 class="text-xl tracking-tight font-semibold">Proceso paso por paso</h2>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
+                        <caption class="sr-only">
+                            Iteraciones del método de {metodo.titulo}: valor de x, f(x) y error relativo por iteración
+                        </caption>
                         <thead>
                             <tr class="border-b border-slate-200 text-slate-500">
-                                <th class="pb-2 font-medium">Iteración</th>
-                                <th class="pb-2 font-medium">x</th>
-                                <th class="pb-2 font-medium">f(x)</th>
-                                <th class="pb-2 font-medium">Error (%)</th>
+                                <th scope="col" class="pb-2 font-medium">Iteración</th>
+                                <th scope="col" class="pb-2 font-medium">x</th>
+                                <th scope="col" class="pb-2 font-medium">f(x)</th>
+                                <th scope="col" class="pb-2 font-medium">Error (%)</th>
                             </tr>
                         </thead>
                         <tbody id="tabla-iteraciones" class="text-sm">
@@ -102,7 +105,7 @@ const { metodo } = Astro.props;
 </Layout>
 
 <script>
-    import { METHODS } from '@/data/methods';
+    import { METHODS, type Metodo } from '@/data/methods';
     import { ErrorDeMetodo, type Iteracion, type ResultadoMetodo } from '@/lib/numerical/types';
     import { crearFuncionSegura, leerNumero } from '@/lib/numerical/evaluacion';
     import { biseccion } from '@/lib/numerical/biseccion';

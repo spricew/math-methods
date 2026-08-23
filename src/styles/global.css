@@ -102,46 +102,6 @@
     --color-ref-palette-neutral-100: #FFFFFF;
 }
 
-/* @media (prefers-color-scheme: dark) {
-    :root {
-  
-      --color-primary: #C6C6C6;
-      --color-surface-tint: #C6C6C6;
-      --color-on-primary: #303030;
-      --color-primary-container: #000000;
-      --color-on-primary-container: #757575;
-      --color-primary: #5185ff;
-      --color-on-primary: #002E69;
-      --color-primary-container: #4B8EFF;
-      --color-on-primary-container: #001435;
-  
-      --color-error: #FFB4AB;
-      --color-on-error: #690005;
-      --color-error-container: #93000A;
-      --color-on-error-container: #FFDAD6;
-      --color-background: #131313;
-      --color-on-background: #E2E2E2;
-      --color-surface: #131313;
-      --color-on-surface: #E2E2E2;
-      --color-surface-variant: #4C4546;
-      --color-on-surface-variant: #CFC4C5;
-      --color-outline: #988E90;
-      --color-outline-variant: #4C4546;
-      --color-inverse-surface: #E2E2E2;
-      --color-inverse-on-surface: #303030;
-      --color-inverse-primary: #5E5E5E;
-  
-      --color-surface-dim: #131313;
-      --color-surface-bright: #393939;
-      --color-surface-container-lowest: #0E0E0E;
-      --color-surface-container-low: #1B1B1B;
-      --color-surface-container: #1F1F1F;
-      --color-surface-container-high: #2A2A2A;
-      --color-surface-container-highest: #353535;
-    }
-  } */
-
-
 /* FONTS */
 @font-face {
     font-family: 'DM Sans';
@@ -185,6 +145,22 @@
 
 * {
     box-sizing: border-box;
+}
+
+/* Campos marcados como inválidos desde JS (aria-invalid) */
+input[aria-invalid="true"] {
+    --tw-ring-color: var(--color-error);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }
 
 html,

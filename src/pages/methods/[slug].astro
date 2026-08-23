@@ -35,8 +35,8 @@ const tituloMetodo = titulos[slug as string] || slug;
                 <Input label="Función f(x)" type="text" placeholder="ej. x^3 - 2*x + 1" name="funcion" required />
                 
                 <div class="grid grid-cols-2 gap-4">
-                    <Input label="Tolerancia (Error)" type="number" step="any" placeholder="ej. 0.001" name="tolerancia" required />
-                    <Input label="Max. Iteraciones" type="number" placeholder="ej. 50" name="iteraciones" value="50" required />
+                    <Input label="Tolerancia (Error)" type="number" step="any" min="0" placeholder="ej. 0.001" name="tolerancia" required />
+                    <Input label="Max. Iteraciones" type="number" min="1" placeholder="ej. 50" name="iteraciones" value="50" required />
                 </div>
 
                 {slug === 'bisection' && (
@@ -60,6 +60,14 @@ const tituloMetodo = titulos[slug as string] || slug;
                     </div>
                 )}
 
+                <p
+                    id="error-formulario"
+                    role="alert"
+                    hidden
+                    class="p-4 rounded-2xl bg-error-container text-on-error-container text-sm leading-relaxed"
+                >
+                </p>
+
                 <div class="flex gap-2 mt-4">
                     <Button type="submit" text="Calcular" variant="primary" extraclass="flex-1" shadow/>
                     <Button type="reset" text="Limpiar" variant="danger"/>
@@ -70,9 +78,10 @@ const tituloMetodo = titulos[slug as string] || slug;
         <section class="flex flex-col gap-8 rounded-3xl p-8 bg-surface-container-lowest ring ring-outline-variant/50">
             <header class="flex flex-col gap-4">
                 <h1 class="text-xl tracking-tight font-medium">Resultado</h1>
-                <div class="flex flex-col p-6 rounded-2xl bg-primary-background border border-primary/20">
+                <div class="flex flex-col p-6 rounded-2xl bg-primary-background border border-primary/20" aria-live="polite">
                     <span class="text-primary font-medium mb-1">Raíz aproximada</span>
                     <span id="resultado-raiz" class="text-4xl font-semibold text-primary-container">--</span>
+                    <span id="resultado-status" role="status" class="text-sm text-slate-500 mt-2 min-h-5"></span>
                 </div>
             </header>
 
@@ -105,60 +114,160 @@ const tituloMetodo = titulos[slug as string] || slug;
 <script>
     import { compile, derivative } from 'mathjs';
 
-    const form = document.getElementById('formulario-metodo') as HTMLFormElement;
+    type Iteracion = { iter: number; x: number; fx: number; error: number | null };
+
+    const form = document.getElementById('formulario-metodo') as HTMLFormElement | null;
     const resultadoSpan = document.getElementById('resultado-raiz');
+    const resultadoStatus = document.getElementById('resultado-status');
     const tablaBody = document.getElementById('tabla-iteraciones');
 
+    const FILA_PLACEHOLDER = `
+        <tr>
+            <td colspan="4" class="py-4 text-center text-slate-400">
+                Ingresa los datos y presiona calcular para ver el procedimiento.
+            </td>
+        </tr>`;
+
+    const formatoError = (error: number | null): string => {
+        if (error === null) return '-';
+        if (!Number.isFinite(error)) return '∞';
+        return error.toFixed(4) + '%';
+    };
+
     if (form) {
+        const errorBox = document.getElementById('error-formulario');
+        const botonCalcular = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+        const textoBoton = botonCalcular?.textContent ?? 'Calcular';
+
+        let camposInvalidos: HTMLElement[] = [];
+
+        const limpiarError = () => {
+            for (const campo of camposInvalidos) campo.removeAttribute('aria-invalid');
+            camposInvalidos = [];
+            if (errorBox) errorBox.hidden = true;
+        };
+
+        // Muestra el mensaje en la caja del formulario y marca los campos responsables
+        const mostrarError = (mensaje: string, campos: string[] = []) => {
+            for (const nombre of campos) {
+                const campo = form.elements.namedItem(nombre);
+                if (campo instanceof HTMLElement) {
+                    campo.setAttribute('aria-invalid', 'true');
+                    camposInvalidos.push(campo);
+                }
+            }
+            if (errorBox) {
+                errorBox.textContent = mensaje;
+                errorBox.hidden = false;
+            }
+        };
+
+        const establecerCargando = (cargando: boolean) => {
+            if (!botonCalcular) return;
+            botonCalcular.disabled = cargando;
+            botonCalcular.textContent = cargando ? 'Calculando…' : textoBoton;
+        };
+
+        // El botón "Limpiar" también restaura la zona de resultados y los errores
+        form.addEventListener('reset', () => {
+            limpiarError();
+            establecerCargando(false);
+            if (resultadoSpan) resultadoSpan.textContent = '--';
+            if (resultadoStatus) resultadoStatus.textContent = '';
+            if (tablaBody) tablaBody.innerHTML = FILA_PLACEHOLDER;
+        });
+
         form.addEventListener('submit', (e) => {
             e.preventDefault(); // evita que la página se recargue
+            limpiarError();
 
             const formData = new FormData(form);
-            const method = form.dataset.method;
 
-            // Variables universales
-            const funcStr = formData.get('funcion') as string;
+            // Validación de datos comunes antes de calcular
             const tol = parseFloat(formData.get('tolerancia') as string);
             const maxIter = parseInt(formData.get('iteraciones') as string);
+            let datosValidos = true;
+
+            if (!Number.isFinite(tol) || tol <= 0) {
+                mostrarError('La tolerancia debe ser un número mayor que cero.', ['tolerancia']);
+                datosValidos = false;
+            }
+            if (!Number.isInteger(maxIter) || maxIter < 1) {
+                mostrarError('El máximo de iteraciones debe ser un entero mayor o igual a 1.', ['iteraciones']);
+                datosValidos = false;
+            }
+            if (!datosValidos) return;
+
+            establecerCargando(true);
+            // Se difiere el cálculo para que el navegador pinte el estado de carga primero
+            setTimeout(() => {
+                try {
+                    calcular(formData, form.dataset.method as string, tol, maxIter);
+                } finally {
+                    establecerCargando(false);
+                }
+            }, 30);
+        });
+
+        function calcular(formData: FormData, method: string, tol: number, maxIter: number) {
+            const funcStr = formData.get('funcion') as string;
 
             let func;
             try {
                 // se compila la función matemática (ej. convierte "x^2 - 4" en código ejecutable)
                 func = compile(funcStr);
-            } catch (error) {
-                alert("Error de sintaxis en la función f(x). Asegúrate de usar operadores válidos (ej. 2*x en lugar de 2x).");
+            } catch {
+                mostrarError("Error de sintaxis en la función f(x). Asegúrate de usar operadores válidos (ej. 2*x en lugar de 2x).", ['funcion']);
                 return;
             }
 
-            // se crea una función auxiliar rápida para evaluar f(x)
-            const f = (x: number) => func.evaluate({ x });
-            
-            let iteraciones = [];
-            let raizEncontrada = null;
+            // evalúa f(x) garantizando un resultado numérico finito
+            const f = (x: number): number => {
+                const y = func.evaluate({ x });
+                if (typeof y !== 'number' || !Number.isFinite(y)) {
+                    throw new Error(`f(${x}) no produce un valor finito (obtuvo ${y}). Revisa la función o los valores iniciales.`);
+                }
+                return y;
+            };
+
+            let iteraciones: Iteracion[] = [];
+            let raiz: number | null = null;
+            let convergio = false;
 
             try {
-               
+
                 if (method === 'bisection') {
                     let a = parseFloat(formData.get('a') as string);
                     let b = parseFloat(formData.get('b') as string);
 
-                    // Validación del Teorema de Bolzano
-                    if (f(a) * f(b) >= 0) {
-                        alert("Error: f(a) y f(b) deben tener signos opuestos. No se garantiza una raíz en este intervalo.");
+                    if (!Number.isFinite(a) || !Number.isFinite(b)) {
+                        mostrarError("Los límites a y b deben ser números válidos.", ['a', 'b']);
                         return;
                     }
 
-                    let c_viejo = a;
+                    if (a >= b) {
+                        mostrarError("El límite inferior (a) debe ser menor que el límite superior (b).", ['a', 'b']);
+                        return;
+                    }
+
+                    // Validación del Teorema de Bolzano
+                    if (f(a) * f(b) >= 0) {
+                        mostrarError("f(a) y f(b) deben tener signos opuestos. No se garantiza una raíz en este intervalo.", ['a', 'b', 'funcion']);
+                        return;
+                    }
+
+                    let cPrevio: number | null = null;
                     for (let i = 1; i <= maxIter; i++) {
-                        let c = (a + b) / 2;
-                        let fc = f(c);
-                        let error = Math.abs((c - c_viejo) / c) * 100;
-                        if (i === 1) error = 100; // En la primera iteración el error es del 100%
+                        const c = (a + b) / 2;
+                        const fc = f(c);
+                        // Sin punto medio previo no hay error que calcular (iter 1 => null)
+                        const error = cPrevio === null ? null : Math.abs((c - cPrevio) / c) * 100;
 
-                        iteraciones.push({ iter: i, x: c, fx: fc, error: error });
+                        iteraciones.push({ iter: i, x: c, fx: fc, error });
 
-                        if (error < tol || fc === 0) {
-                            raizEncontrada = c;
+                        if ((error !== null && error < tol) || fc === 0) {
+                            raiz = c;
+                            convergio = true;
                             break;
                         }
 
@@ -168,79 +277,102 @@ const tituloMetodo = titulos[slug as string] || slug;
                         } else {
                             a = c;
                         }
-                        c_viejo = c;
-                        raizEncontrada = c; // Por si alcanza el límite de iteraciones
-                    }
-                } 
-              
-                else if (method === 'newton-raphson') {
-                    let x0 = parseFloat(formData.get('x0') as string);
-                    let derivStr = formData.get('derivada') as string;
-                    let df;
-
-                    // Si el usuario no escribió la derivada, mathjs la calcula automáticamente
-                    if (derivStr) {
-                        const derivNode = compile(derivStr);
-                        df = (x: number) => derivNode.evaluate({ x });
-                    } else {
-                        const derivNode = derivative(funcStr, 'x');
-                        df = (x: number) => derivNode.evaluate({ x });
-                    }
-
-                    let x_viejo = x0;
-                    for (let i = 1; i <= maxIter; i++) {
-                        let fx = f(x_viejo);
-                        let dfx = df(x_viejo);
-
-                        if (dfx === 0) {
-                            alert("La derivada es cero. El método de Newton-Raphson falla en este punto.");
-                            return;
-                        }
-
-                        let x_nuevo = x_viejo - (fx / dfx);
-                        let error = Math.abs((x_nuevo - x_viejo) / x_nuevo) * 100;
-
-                        iteraciones.push({ iter: i, x: x_nuevo, fx: f(x_nuevo), error: error });
-
-                        if (error < tol || f(x_nuevo) === 0) {
-                            raizEncontrada = x_nuevo;
-                            break;
-                        }
-                        x_viejo = x_nuevo;
-                        raizEncontrada = x_nuevo;
+                        cPrevio = c;
+                        raiz = c;
                     }
                 }
-                
+
+                else if (method === 'newton-raphson') {
+                    let xPrevio = parseFloat(formData.get('x0') as string);
+
+                    if (!Number.isFinite(xPrevio)) {
+                        mostrarError("El valor inicial x0 debe ser un número válido.", ['x0']);
+                        return;
+                    }
+
+                    const derivStr = formData.get('derivada') as string;
+                    let df;
+
+                    try {
+                        // Si el usuario no escribió la derivada, mathjs la calcula automáticamente
+                        if (derivStr) {
+                            const derivNode = compile(derivStr);
+                            df = (x: number) => derivNode.evaluate({ x });
+                        } else {
+                            const derivNode = derivative(funcStr, 'x');
+                            df = (x: number) => derivNode.evaluate({ x });
+                        }
+                    } catch {
+                        mostrarError("Error de sintaxis en la derivada f'(x). Asegúrate de usar operadores válidos (ej. 3*x^2 en lugar de 3x²).", ['derivada']);
+                        return;
+                    }
+
+                    for (let i = 1; i <= maxIter; i++) {
+                        const fx = f(xPrevio);
+                        const dfx = df(xPrevio);
+
+                        if (!Number.isFinite(dfx)) {
+                            throw new Error(`La derivada no es finita en x = ${xPrevio}. Prueba otro valor inicial o indica f'(x).`);
+                        }
+                        if (dfx === 0) {
+                            throw new Error(`La derivada es cero en x = ${xPrevio}. El método de Newton-Raphson falla en este punto.`);
+                        }
+
+                        const xNuevo = xPrevio - (fx / dfx);
+                        const error = Math.abs((xNuevo - xPrevio) / xNuevo) * 100;
+
+                        iteraciones.push({ iter: i, x: xNuevo, fx: f(xNuevo), error });
+
+                        if (error < tol || f(xNuevo) === 0) {
+                            raiz = xNuevo;
+                            convergio = true;
+                            break;
+                        }
+                        xPrevio = xNuevo;
+                        raiz = xNuevo;
+                    }
+                }
+
                 else if (method === 'secant') {
                     let x0 = parseFloat(formData.get('x0') as string);
                     let x1 = parseFloat(formData.get('x1') as string);
 
+                    if (!Number.isFinite(x0) || !Number.isFinite(x1)) {
+                        mostrarError("Los valores iniciales x0 y x1 deben ser números válidos.", ['x0', 'x1']);
+                        return;
+                    }
+
                     for (let i = 1; i <= maxIter; i++) {
-                        let fx0 = f(x0);
-                        let fx1 = f(x1);
+                        const fx0 = f(x0);
+                        const fx1 = f(x1);
 
                         if (fx1 - fx0 === 0) {
-                            alert("División por cero. El método de la secante falla con estos valores.");
-                            return;
+                            throw new Error("División por cero: f(x0) y f(x1) son iguales. El método de la secante falla con estos valores.");
                         }
 
-                        let x_nuevo = x1 - fx1 * ((x1 - x0) / (fx1 - fx0));
-                        let error = Math.abs((x_nuevo - x1) / x_nuevo) * 100;
+                        const xNuevo = x1 - fx1 * ((x1 - x0) / (fx1 - fx0));
+                        const error = Math.abs((xNuevo - x1) / xNuevo) * 100;
 
-                        iteraciones.push({ iter: i, x: x_nuevo, fx: f(x_nuevo), error: error });
+                        iteraciones.push({ iter: i, x: xNuevo, fx: f(xNuevo), error });
 
-                        if (error < tol || f(x_nuevo) === 0) {
-                            raizEncontrada = x_nuevo;
+                        if (error < tol || f(xNuevo) === 0) {
+                            raiz = xNuevo;
+                            convergio = true;
                             break;
                         }
                         x0 = x1;
-                        x1 = x_nuevo;
-                        raizEncontrada = x_nuevo;
+                        x1 = xNuevo;
+                        raiz = xNuevo;
                     }
                 }
 
-                if (resultadoSpan && raizEncontrada !== null) {
-                    resultadoSpan.textContent = raizEncontrada.toFixed(6);
+                if (raiz !== null && Number.isFinite(raiz)) {
+                    if (resultadoSpan) resultadoSpan.textContent = raiz.toFixed(6);
+                    if (resultadoStatus) {
+                        resultadoStatus.textContent = convergio
+                            ? `Convergió en ${iteraciones.length} iteración(es).`
+                            : `No convergió en ${maxIter} iteraciones. Este valor es solo la última aproximación.`;
+                    }
                 }
 
                 if (tablaBody) {
@@ -249,16 +381,17 @@ const tituloMetodo = titulos[slug as string] || slug;
                             <td class="py-3 px-2">${it.iter}</td>
                             <td class="py-3 px-2 font-mono">${it.x.toFixed(6)}</td>
                             <td class="py-3 px-2 font-mono text-slate-500">${it.fx.toExponential(4)}</td>
-                            <td class="py-3 px-2 font-mono ${(it.error < tol && it.iter !== 1) ? 'text-green-600 font-bold' : ''}">
-                                ${it.iter === 1 && method === 'bisection' ? '-' : it.error.toFixed(4) + '%'}
+                            <td class="py-3 px-2 font-mono ${it.error !== null && it.error < tol ? 'text-green-600 font-bold' : ''}">
+                                ${formatoError(it.error)}
                             </td>
                         </tr>
                     `).join('');
                 }
 
-            } catch (error:any) {
-                alert("Ocurrió un error inesperado durante el cálculo: " + error.message);  
+            } catch (error: unknown) {
+                const mensaje = error instanceof Error ? error.message : String(error);
+                mostrarError(mensaje);
             }
-        });
+        }
     }
 </script>

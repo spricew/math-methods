@@ -1,0 +1,80 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import Card from '@/components/ui/Card.astro';
+
+import { ArrowLeft, Compass, TrendingDown, ChevronsDownUp, LineDotRightHorizontal } from '@lucide/astro';
+import type { AstroComponent } from '@lucide/astro';
+import { METHODS, type MethodId } from '@/data/methods';
+
+type Variant = 'primary' | 'secondary' | 'tertiary';
+
+interface Presentacion {
+	Icon: AstroComponent;
+	variant: Variant;
+}
+
+const presentacion: Record<MethodId, Presentacion> = {
+	'newton-raphson': { Icon: TrendingDown, variant: 'primary' },
+	bisection: { Icon: ChevronsDownUp, variant: 'secondary' },
+	secant: { Icon: LineDotRightHorizontal, variant: 'tertiary' }
+};
+
+const operaciones = METHODS.map((metodo) => ({ ...metodo, ...presentacion[metodo.id] }));
+---
+
+<Layout
+	title="Página no encontrada"
+	description="La página que buscas no existe. Vuelve al inicio o elige un método numérico para continuar."
+>
+	<main class="flex flex-col justify-center gap-12 w-full h-full px-6 md:px-12 lg:px-24 py-8">
+		<section class="flex flex-col items-center gap-4 text-center">
+			<span class="squircle flex items-center justify-center size-20 mb-2 text-primary bg-primary-background">
+				<Compass class="size-8" stroke-width={2.6} aria-hidden="true" />
+			</span>
+
+			<span class="text-sm tracking-wider font-bold text-primary">ERROR 404</span>
+			<p class="text-7xl md:text-8xl tracking-tighter font-bold leading-none text-primary-container" aria-hidden="true">
+				404
+			</p>
+			<h1 class="text-3xl md:text-4xl tracking-tighter font-semibold">No encontramos esa raíz</h1>
+			<p class="text-lg max-w-prose text-on-surface-variant">
+				La página que buscas no existe, fue movida o el enlace está mal escrito. Vuelve al inicio o salta directo a un
+				método numérico.
+			</p>
+
+			<a
+				href="/"
+				class="inline-flex items-center justify-center gap-2 py-2 px-4 mt-2 w-fit h-fit rounded-xl text-base font-medium bg-primary-container text-on-primary transition-transform duration-300 ease-out hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+			>
+				<ArrowLeft class="size-5" aria-hidden="true" />
+				Volver al inicio
+			</a>
+		</section>
+
+		<section class="flex flex-col gap-6">
+			<header class="flex flex-col">
+				<span class="text-sm tracking-wider font-bold text-primary">ANÁLISIS NUMÉRICO</span>
+				<h2 class="text-2xl tracking-tight font-semibold">Prueba con un método</h2>
+			</header>
+
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+				{operaciones.map((operacion) => (
+					<Card
+						slug={operacion.slug}
+						title={operacion.titulo}
+						description={operacion.descripcion}
+						Icon={operacion.Icon}
+						variant={operacion.variant}
+					/>
+				))}
+			</div>
+		</section>
+	</main>
+</Layout>
+
+<style>
+	.squircle {
+		corner-shape: squircle;
+		border-radius: 5em;
+	}
+</style>

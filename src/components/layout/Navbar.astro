@@ -1,5 +1,6 @@
 ---
 import Logotype from "@/assets/Logotype.astro"
+import { Menu, X } from '@lucide/astro'
 import { METHODS } from "@/data/methods";
 
 const rutaActual = Astro.url.pathname;
@@ -11,39 +12,84 @@ const enlaces = [
 
 const esActivo = (href: string) => (href === '/' ? rutaActual === '/' : rutaActual.startsWith(href));
 ---
-<nav class="flex justify-between items-center w-full h-20 px-6 md:px-12 lg:px-24 bg-surface-container-lowest">
-    <a href="/" class="flex items-center gap-2 text-2xl tracking-tight font-semibold" aria-label="MathMethods - Inicio">
-        <Logotype />
-        MathMethods
-    </a>
+<nav class="w-full bg-surface-container-lowest">
+    <div class="relative flex items-center justify-between h-20 px-6 md:px-12 lg:px-24">
+        <a href="/" class="flex items-center gap-2 text-2xl tracking-tight font-semibold" aria-label="MathMethods - Inicio">
+            <Logotype />
+            MathMethods
+        </a>
 
-    <ul class="flex items-center gap-6 overflow-x-auto">
-        {enlaces.map((enlace) => (
+        <ul
+            id="menu-navegacion"
+            class="hidden absolute inset-x-0 top-20 z-50 px-6 py-4 border-t border-outline-variant bg-surface-container-lowest shadow-lg md:px-12 lg:static lg:top-auto lg:z-auto lg:flex lg:flex-row lg:items-center lg:gap-6 lg:border-t-0 lg:px-0 lg:py-0 lg:shadow-none"
+        >
+            {enlaces.map((enlace) => (
+                <li>
+                    <a
+                        href={enlace.href}
+                        aria-current={esActivo(enlace.href) ? 'page' : undefined}
+                        class:list={[
+                            'block px-3 py-2.5 rounded-lg text-base font-medium text-neutral-500 transition-colors hover:bg-surface-container hover:text-on-surface lg:px-0 lg:py-0 lg:rounded-none lg:text-sm',
+                            esActivo(enlace.href) && 'text-primary font-semibold'
+                        ]}
+                    >
+                        {enlace.label}
+                    </a>
+                </li>
+            ))}
             <li>
                 <a
-                    href={enlace.href}
-                    aria-current={esActivo(enlace.href) ? 'page' : undefined}
-                    class:list={[
-                        'text-sm font-medium text-neutral-500 transition-colors hover:text-on-surface whitespace-nowrap',
-                        esActivo(enlace.href) && 'text-primary font-semibold'
-                    ]}
+                    href="https://github.com/spricew/math-methods"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Repositorio de GitHub"
+                    class="flex items-center gap-2 px-3 py-2.5 rounded-lg text-base font-medium text-neutral-500 transition-colors hover:bg-surface-container hover:text-on-surface lg:px-0 lg:py-0 lg:rounded-none"
                 >
-                    {enlace.label}
+                    <svg class="size-5 shrink-0" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>
+                    </svg>
+                    <span class="lg:hidden">GitHub</span>
                 </a>
             </li>
-        ))}
-        <li>
-            <a
-                href="https://github.com/spricew/math-methods"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Repositorio de GitHub"
-                class="text-neutral-500 transition-colors hover:text-on-surface"
-            >
-                <svg class="size-5" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>
-                </svg>
-            </a>
-        </li>
-    </ul>
+        </ul>
+
+        <button
+            id="boton-menu"
+            type="button"
+            aria-expanded="false"
+            aria-controls="menu-navegacion"
+            aria-label="Menú de navegación"
+            class="group flex items-center justify-center size-10 rounded-lg text-on-surface transition-colors hover:bg-surface-container lg:hidden"
+        >
+            <Menu class="size-6 group-aria-expanded:hidden" />
+            <X class="hidden size-6 group-aria-expanded:block" />
+        </button>
+    </div>
 </nav>
+
+<script>
+    const boton = document.getElementById('boton-menu') as HTMLButtonElement | null;
+    const menu = document.getElementById('menu-navegacion');
+
+    if (boton && menu) {
+        // Se alterna la clase `hidden` (y no el atributo hidden) porque el preflight
+        // de Tailwind aplica `display: none !important` al atributo, lo que anularía
+        // el `lg:flex` y dejaría el menú invisible en escritorio.
+        const establecerMenu = (abierto: boolean) => {
+            boton.setAttribute('aria-expanded', String(abierto));
+            menu.classList.toggle('hidden', !abierto);
+        };
+
+        boton.addEventListener('click', () => {
+            establecerMenu(boton.getAttribute('aria-expanded') !== 'true');
+        });
+
+        // Escape cierra el panel y devuelve el foco al botón que lo controla
+        document.addEventListener('keydown', (evento) => {
+            if (evento.key === 'Escape' && boton.getAttribute('aria-expanded') === 'true') {
+                establecerMenu(false);
+                boton.focus();
+            }
+        });
+    }
+</script>
